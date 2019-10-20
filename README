@@ -1,0 +1,22 @@
+Kied Llaentenn's Lemonbar
+=========================
+
+Created to replace a Polybar configuration. Polybar is nice, but it takes up a significant amount of CPU on a Raspberry Pi Zero. Previously, I piped Polybar into Lemonbar like so:
+
+	polybar -s -c ~/.config/polybar/config | lemonbar 
+
+But eventually I wrote this script.
+
+Usage
+-----
+Just run the script, and pipe it into lemonbar. Here's my setup:
+	. ~/.cache/wal/colors.sh && ./kbar | lemonbar \
+		-g 1896x24+12+1048 \
+		-f "Siji:size=9" -f "xos Terminus:size=9" \
+		-n bar \
+		-pdb  -u 3 \
+		-B $color0 -F $color7 # accent color: $color6
+
+Note that this script requires the Terminus font and the Siji icons, so ensure that you have that installed before running this.
+
+Feel free to steal this script, but please keep the heading.

@@ -1,0 +1,96 @@
+#!/bin/sh
+# bar script to replace a polybar script.
+
+get_wname() {
+	win=$(xwininfo -root -children | grep $(printf '%x\n' $(xdotool getwindowfocus)) | grep -oEi '"[^"]+"' | head -1)
+}
+
+get_diskusage() {
+	disk=$(df -hP $PWD | awk '/[0-9]%/{print $(NF-2)}')
+}
+
+get_memusage() {
+	# STOLEN FROM dylanaraps/pfetch
+
+	# Used memory is calculated using the following "formula":
+	# MemUsed = MemTotal + Shmem - MemFree - Buffers - Cached - SReclaimable
+	# Source: https://github.com/KittyKatt/screenFetch/issues/386
+	# Parse the '/proc/meminfo' file splitting on ':' and 'k'.
+    	# The format of the file is 'key:   000kB' and an additional
+    	# split is used on 'k' to filter out 'kB'.
+    	while IFS=':k '  read -r key val _; do
+		case $key in
+	   		MemTotal)
+			mem_used=$((mem_used + val))
+				mem_full=$val
+		    		;;
+	    		Shmem)
+				mem_used=$((mem_used + val))
+		    		;;
+	    		MemFree|Buffers|Cached|SReclaimable)
+				mem_used=$((mem_used - val))
+		    		;;
+		esac
+    	done < /proc/meminfo
+    	mem_used=$((mem_used / 1024))
+    	mem_full=$((mem_full / 1024))
+}
+
+get_temp() {
+	for temp_dir in /sys/class/hwmon/*; do
+		[[ "$(< "${temp_dir}/name")" =~ (coretemp|fam15h_power|k10temp) ]] && \
+			{ temp_dir="${temp_dir}/temp1_input"; break; } 
+	done
+	[[ -f "$temp_dir" ]] && cputemp="$(($(< "$temp_dir") * 100 / 10000))"	
+}
+
+get_network() {
+	count=0
+	disconnected=""
+	disconnected1="Nah!"
+	wireless_connected=""
+	ethernet_connected=""
+
+	SSID_NAME=$(iwgetid -r)
+	ID="$(ip link | awk '/state UP/ {print $2}')"
+
+    	if (ping -c 1 archlinux.org || ping -c 1 github.com) &>/dev/null; then
+        	if [[ $ID == e* ]]; then
+        		network="$ethernet_connected"
+        	else
+			network="$wireless_connected ${SSID_NAME}"
+		fi
+	else
+		network="$disconnected $disconnected1"
+	fi
+}
+
+get_time() {
+	current_time=$(date "+%I:%M %p")
+}
+
+get_cpuusage(){
+	cpu=$(top -bn1 | grep "Cpu(s)" | \
+		sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | \
+		awk '{print 100 - $1}')
+	line="    "
+	cpu=$(printf "${line:${#cpu}}""%s %s" "$cpu%")
+}
+
+main() {
+	. ${HOME}/.cache/wal/colors.sh
+	while true; do
+		get_network
+		get_temp
+		get_memusage
+		get_wname
+		get_diskusage
+		get_cpuusage
+		get_time
+
+		echo "%{l} ${win//\"}%{PR}%{c} $disk%{PR}   ${cpu// } %{PR}$cpu_char%{PR}    ${mem_used} MB $cputemp %{PR}%{r}$network%{PR}  $current_time%{PR} "
+		sleep 0.25
+	done
+}
+
+main "$@"
