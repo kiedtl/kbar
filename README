@@ -5,7 +5,7 @@ Created to replace a Polybar configuration. Polybar is nice, but it takes up a s
 
 	polybar -s -c ~/.config/polybar/config | lemonbar 
 
-But eventually I wrote this script.
+But eventually I wrote this script, trying to save valuable CPU time. Only afterwards did I do some benchmarks and discover that Polybar was, after all, faster. -_-
 
 Usage
 -----
