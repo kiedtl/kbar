@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# bar - new status bar based on bash/lemonbar
+# (c) Kied Llaentenn (@kiedtl)
+# See the LICENSE for more information.
+
+window() {
+	win=$(xwininfo -root -children | grep $(printf '%x\n' $(xdotool getwindowfocus)) | grep -oEi '"[^"]+"' | head -1)
+	echo "${win//\"}"
+}
+
+workspaces() {
+	ws=""
+	current_ws=$(cat /tmp/dwm_info/current_ws)
+	for file in $(ls /tmp/dwm_info/ws*); do
+		if [[ ${current_ws} == ${file} ]]; then
+			ws="${ws} @"
+		else
+			if [[ $(cat "$file") -eq 0 ]]; then
+				ws="${ws} +"
+			else
+				ws="${ws} %"
+			fi
+		fi
+	done
+	echo $ws
+}
+
+bar_stuff() {
+	while true; do
+		sleep 0.25
+		ctr=$(($ctr + 1))
+		network=$(interface)
+		echo "%{l}  $(window)%{c}$(workspaces)%{r}$network $(date "+%R %b %e")  " 
+	done
+}
+
+main() {
+	bar_stuff | lemonbar \
+		-g 1920x24+0+1056 \
+		-n bar \
+		-pdb -f "Fixed:size=11" \
+		-B "#ffffff" -F "#000000"
+}
+
+shopt -s nullglob
+trap "killall lemonbar; killall bar; exit" SIGINT EXIT
+main "$@"
+
